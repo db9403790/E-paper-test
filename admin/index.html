@@ -90,7 +90,7 @@ $('#ct').innerHTML = CATS.map(c => `<option>${c}</option>`).join('');
 if (DEMO) $('#dm').textContent = 'ডেমো মোড: যেকোনো ইমেইল, পাসওয়ার্ড admin123';
 Auth.watch(ok => { $('#login').hidden = ok; $('#panel').hidden = !ok; if (ok) load(); });
 $('#lg').onclick = () => Auth.login($('#em').value, $('#pw').value).then(() => DEMO && location.reload()).catch(() => $('#er').textContent = 'ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।');
-$('#pw').onkeydown = e => e.key === 'Enter' && $('#lg').click();
+$('#pw').onkeydown = e => { if (e.key === 'Enter') $('#lg').click(); };
 $('#lo').onclick = () => { Auth.out(); DEMO && location.reload(); };
 document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b));
