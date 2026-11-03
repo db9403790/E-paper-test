@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>অ্যাডমিন | ভোরের বাণী</title>
+<link rel="icon" href="/logo.svg">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--r:#b00;--ink:#1c1917;--mut:#6e6761;--soft:#f4f2f0;--ln:#e0dbd6}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.6 'Hind Siliguri',sans-serif;color:var(--ink);background:var(--soft)}
+[hidden]{display:none!important}
+input,select,textarea,button{font:inherit}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:6px;background:#fff;margin:4px 0 12px}
+button{cursor:pointer;border:0;border-radius:6px;padding:9px 16px;background:var(--r);color:#fff;font-weight:600}
+button.g{background:#fff;color:var(--ink);border:1px solid var(--ln)}
+label{display:block;font-size:14px;color:var(--mut)}
+label.r{display:flex;gap:8px;align-items:center;color:var(--ink)}
+label.r input{width:auto;margin:0}
+.box{max-width:360px;margin:12vh auto;background:#fff;padding:26px;border-radius:10px}
+.bar{background:#fff;border-bottom:3px solid var(--r);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.bar button{background:#fff;color:var(--ink);border:1px solid var(--ln);margin-left:6px}
+.bar button.on{background:var(--r);color:#fff;border-color:var(--r)}
+.w{max-width:980px;margin:20px auto;padding:0 16px}
+.cd{background:#fff;border-radius:10px;padding:18px;margin-bottom:16px}
+h2,h3{margin:0 0 12px}
+small{color:var(--mut);font-weight:400}
+.it{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ln)}
+.it:last-child{border:0}
+.it img,.it i{width:64px;height:48px;object-fit:cover;background:var(--soft);flex:none}
+.it div{flex:1;min-width:0}
+.it b{display:block;line-height:1.4}
+.it button{padding:6px 12px}
+#pv{max-height:120px;margin-bottom:12px}
+#tt{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px}
+#er{color:var(--r);margin:8px 0 0}
+</style>
+</head>
+<body>
+<div id="login" class="box" hidden>
+  <img src="/logo.svg" height="44" alt="ভোরের বাণী">
+  <h2 style="margin-top:14px">অ্যাডমিন লগইন</h2>
+  <label>ইমেইল<input id="em" type="email" autocomplete="username"></label>
+  <label>পাসওয়ার্ড<input id="pw" type="password" autocomplete="current-password"></label>
+  <button id="lg">লগইন</button>
+  <p id="er"></p>
+  <small id="dm"></small>
+</div>
+
+<div id="panel" hidden>
+  <div class="bar"><img src="/logo.svg" height="34" alt="ভোরের বাণী">
+    <div><button data-t="n" class="on">খবর</button><button data-t="a">বিজ্ঞাপন</button><button id="lo">লগআউট</button></div>
+  </div>
+  <div class="w" id="tn">
+    <div class="cd">
+      <h3 id="fh">নতুন খবর</h3>
+      <label>শিরোনাম<input id="ti"></label>
+      <label>বিভাগ<select id="ct"></select></label>
+      <label>প্রতিবেদক<input id="au"></label>
+      <label>ছবির লিংক<input id="im" placeholder="https://…"></label>
+      <label>অথবা ছবি আপলোড<input id="fi" type="file" accept="image/*"></label>
+      <img id="pv" hidden alt="">
+      <label>খবরের বিবরণ (নতুন অনুচ্ছেদের জন্য নতুন লাইনে লিখুন)<textarea id="bo" rows="10"></textarea></label>
+      <label class="r"><input type="checkbox" id="ft"> প্রধান খবর হিসেবে দেখান</label><br>
+      <button id="sv">প্রকাশ করুন</button> <button id="cl" class="g">নতুন করে শুরু</button>
+    </div>
+    <div class="cd"><h3>প্রকাশিত খবর</h3><div id="ls"></div></div>
+  </div>
+  <div class="w" id="ta" hidden></div>
+</div>
+<div id="tt" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="/core.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let N = [], A = {}, AI = {}, eid = null, eimg = '';
+const toast = m => { const t = $('#tt'); t.textContent = m; t.hidden = false; setTimeout(() => t.hidden = true, 2400); };
+const shrink = (f, w = 900) => new Promise(r => {
+  const i = new Image();
+  i.onload = () => { const k = Math.min(1, w / i.width), c = document.createElement('canvas'); c.width = i.width * k; c.height = i.height * k; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL('image/jpeg', .72)); };
+  i.src = URL.createObjectURL(f);
+});
+
+$('#ct').innerHTML = CATS.map(c => `<option>${c}</option>`).join('');
+if (DEMO) $('#dm').textContent = 'ডেমো মোড: যেকোনো ইমেইল, পাসওয়ার্ড admin123';
+Auth.watch(ok => { $('#login').hidden = ok; $('#panel').hidden = !ok; if (ok) load(); });
+$('#lg').onclick = () => Auth.login($('#em').value, $('#pw').value).then(() => DEMO && location.reload()).catch(() => $('#er').textContent = 'ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।');
+$('#pw').onkeydown = e => e.key === 'Enter' && $('#lg').click();
+$('#lo').onclick = () => { Auth.out(); DEMO && location.reload(); };
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b));
+  $('#tn').hidden = b.dataset.t !== 'n'; $('#ta').hidden = b.dataset.t !== 'a';
+});
+
+async function load() {
+  const [n, a] = await Promise.all([DB.all('news'), DB.all('ads')]);
+  N = n.sort((x, y) => y.date - x.date); A = {}; a.forEach(x => A[x.id] = x);
+  Object.keys(SLOTS).forEach(k => AI[k] = (A[k]?.img || '').startsWith('data:') ? A[k].img : '');
+  drawNews(); drawAds();
+}
+function drawNews() {
+  $('#ls').innerHTML = N.map(n => `<div class="it">${n.img ? `<img src="${E(n.img)}" alt="">` : '<i></i>'}<div><b>${E(n.title)}</b><small>${E(n.cat)}</small></div><button class="g" data-e="${n.id}">সম্পাদনা</button><button data-d="${n.id}">মুছুন</button></div>`).join('') || '<p>এখনো কোনো খবর নেই।</p>';
+}
+function clearForm() {
+  eid = null; eimg = ''; ['ti', 'au', 'im', 'bo'].forEach(i => $('#' + i).value = ''); $('#ft').checked = false; $('#fi').value = '';
+  $('#pv').hidden = true; $('#fh').textContent = 'নতুন খবর';
+}
+function pv() { const s = $('#im').value.trim() || eimg; $('#pv').hidden = !s; if (s) $('#pv').src = s; }
+$('#fi').onchange = async e => { if (e.target.files[0]) { eimg = await shrink(e.target.files[0]); $('#im').value = ''; pv(); } };
+$('#im').oninput = () => { eimg = ''; pv(); };
+$('#cl').onclick = clearForm;
+$('#sv').onclick = async () => {
+  const t = $('#ti').value.trim(), b = $('#bo').value.trim();
+  if (!t || !b) return toast('শিরোনাম ও খবরের বিবরণ লিখুন');
+  const old = N.find(n => n.id === eid) || {};
+  await DB.set('news', eid || DB.newId(), { title: t, cat: $('#ct').value, author: $('#au').value.trim(), img: $('#im').value.trim() || eimg, body: b, featured: $('#ft').checked, date: old.date || Date.now() });
+  clearForm(); await load(); toast('খবর প্রকাশ হয়েছে');
+};
+$('#ls').onclick = async e => {
+  const ed = e.target.dataset.e, de = e.target.dataset.d;
+  if (ed) {
+    const n = N.find(x => x.id === ed); eid = ed; eimg = (n.img || '').startsWith('data:') ? n.img : '';
+    $('#ti').value = n.title; $('#ct').value = n.cat; $('#au').value = n.author || ''; $('#im').value = eimg ? '' : (n.img || '');
+    $('#bo').value = n.body; $('#ft').checked = !!n.featured; $('#fh').textContent = 'খবর সম্পাদনা'; pv(); scrollTo(0, 0);
+  }
+  if (de && confirm('খবরটি মুছে ফেলবেন?')) { await DB.del('news', de); await load(); toast('খবর মুছে ফেলা হয়েছে'); }
+};
+
+function drawAds() {
+  $('#ta').innerHTML = Object.entries(SLOTS).map(([k, s]) => {
+    const a = A[k] || {};
+    return `<section class="cd" data-k="${k}"><h3>${s.name} <small>${s.size}</small></h3>
+    <label>ছবির লিংক<input class="ai" value="${E(AI[k] ? '' : a.img)}"></label>
+    <label>অথবা ছবি আপলোড<input type="file" accept="image/*" class="af"></label>
+    <label>ক্লিক করলে যে লিংকে যাবে<input class="al" value="${E(a.link)}"></label>
+    <label>অথবা বিজ্ঞাপনের কোড (AdSense ইত্যাদি)<textarea class="ah" rows="3">${E(a.html)}</textarea></label>
+    <label class="r"><input type="checkbox" class="ao" ${a.off ? 'checked' : ''}> এই জায়গা বন্ধ রাখুন</label><br>
+    <button class="as">সংরক্ষণ করুন</button></section>`;
+  }).join('');
+}
+$('#ta').onchange = async e => {
+  if (e.target.classList.contains('af') && e.target.files[0]) {
+    const k = e.target.closest('section').dataset.k;
+    AI[k] = await shrink(e.target.files[0], 1000); e.target.closest('section').querySelector('.ai').value = ''; toast('ছবি নেওয়া হয়েছে, এবার সংরক্ষণ করুন');
+  }
+};
+$('#ta').onclick = async e => {
+  if (!e.target.classList.contains('as')) return;
+  const s = e.target.closest('section'), k = s.dataset.k, q = c => s.querySelector(c);
+  await DB.set('ads', k, { img: q('.ai').value.trim() || AI[k] || '', link: q('.al').value.trim(), html: q('.ah').value.trim(), off: q('.ao').checked });
+  await load(); toast('বিজ্ঞাপন সংরক্ষিত হয়েছে');
+};
+</script>
+</body>
+</html>
